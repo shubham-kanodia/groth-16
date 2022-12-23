@@ -4,6 +4,8 @@ import inspect
 from ast import Assign, Return
 from pprint import pprint
 
+from helpers.polynomial_helper import Polynomial
+
 
 class Operand:
     def __init__(self, val):
@@ -214,14 +216,22 @@ class Snark:
 
         self._calculate_r1cs()
 
+    @staticmethod
+    def _r1cs_to_qap(matrix):
+        qap = []
+
+        for y in range(len(matrix[0])):
+            points = []
+            for x in range(len(matrix)):
+                points.append((x + 1, matrix[x][y]))
+
+            polynomial = Polynomial.from_points(points)
+            qap.append(polynomial.coeffs)
+
+        return qap
+
     def _calculate_r1cs(self):
         self.symbols = [Operand("~one")] + self.symbols
-
-        # Temporary (remove the below lines)
-        self.symbols = ['~one', 'x', '~out', 'sym_1', 'y', 'sym_2']
-
-        self.gates[0], self.gates[1] = self.gates[1], self.gates[0]
-        self.gates[2], self.gates[3] = self.gates[3], self.gates[2]
 
         A = []
         B = []
@@ -234,14 +244,9 @@ class Snark:
             B.append(constraints[1])
             C.append(constraints[2])
 
-        print("A")
-        pprint(A)
-
-        print("B")
-        pprint(B)
-
-        print("C")
-        pprint(C)
+        qap_a = self._r1cs_to_qap(A)
+        qap_b = self._r1cs_to_qap(B)
+        qap_c = self._r1cs_to_qap(C)
 
     def __call__(self, *args):
         pass
