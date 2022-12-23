@@ -2,6 +2,7 @@ import ast
 import inspect
 
 from ast import Assign, Return
+from pprint import pprint
 
 
 class Operand:
@@ -27,12 +28,58 @@ class TypeAddition:
         self.symbol_b = symbol_b
         self.target = target
 
+    def r1cs(self, symbols_order):
+        a = [0 for _ in symbols_order]
+        b = [0 for _ in symbols_order]
+        c = [0 for _ in symbols_order]
+
+        if self.symbol_a.type == "SYMBOL":
+            a[symbols_order.index(self.symbol_a.val)] = 1
+        else:
+            a[0] = self.symbol_a.val
+
+        if self.symbol_b.type == "SYMBOL":
+            a[symbols_order.index(self.symbol_b.val)] = 1
+        else:
+            a[0] += self.symbol_b.val
+
+        b[0] = 1
+
+        if self.target.type == "SYMBOL":
+            c[symbols_order.index(self.target.val)] = 1
+        else:
+            c[0] = self.target.val
+
+        return a, b, c
+
 
 class TypeMultiplication:
     def __init__(self, symbol_a, symbol_b, target):
         self.symbol_a = symbol_a
         self.symbol_b = symbol_b
         self.target = target
+
+    def r1cs(self, symbols_order):
+        a = [0 for _ in symbols_order]
+        b = [0 for _ in symbols_order]
+        c = [0 for _ in symbols_order]
+
+        if self.symbol_a.type == "SYMBOL":
+            a[symbols_order.index(self.symbol_a.val)] = 1
+        else:
+            a[0] = self.symbol_a.val
+
+        if self.symbol_b.type == "SYMBOL":
+            b[symbols_order.index(self.symbol_b.val)] = 1
+        else:
+            b[0] = self.symbol_b.val
+
+        if self.target.type == "SYMBOL":
+            c[symbols_order.index(self.target.val)] = 1
+        else:
+            c[0] = self.target.val
+
+        return a, b, c
 
 
 class Snark:
@@ -43,12 +90,14 @@ class Snark:
         self.symbols_count = 0
         self.symbols = []
 
+        self._initialise()
+
     def mk_symbol(self):
         self.symbols_count += 1
         symbol = f"sym_{self.symbols_count}"
 
         self.symbols.append(symbol)
-        return symbol
+        return Operand(symbol)
 
     def parse_pow(self, left_symbol, n, target_symbol):
         if n == 1:
@@ -56,7 +105,7 @@ class Snark:
                 TypeMultiplication(
                     Operand(left_symbol),
                     Operand(1),
-                    Operand(target_symbol)
+                    target_symbol
                 )
             )
         elif n == 2:
@@ -64,22 +113,25 @@ class Snark:
                 TypeMultiplication(
                     Operand(left_symbol),
                     Operand(left_symbol),
-                    Operand(target_symbol)
+                    target_symbol
                 )
             )
         else:
             new_symbol = self.mk_symbol()
             self.gates.append(
                 TypeMultiplication(
-                    Operand(new_symbol),
+                    new_symbol,
                     Operand(left_symbol),
-                    Operand(target_symbol)
+                    target_symbol
                 )
             )
 
             self.parse_pow(left_symbol, n-1, new_symbol)
 
     def flatten_expression(self, target, value):
+        if not isinstance(target, Operand):
+            target = Operand(target)
+
         op_to_class = {
             ast.Add: TypeAddition,
             ast.Mult: TypeMultiplication
@@ -95,7 +147,7 @@ class Snark:
                 new_symbol = self.mk_symbol()
 
                 self.gates.append(op_to_class[type(value.op)](
-                    Operand(new_symbol),
+                    new_symbol,
                     Operand(value.right.id if hasattr(value.right, "id") else value.right.n),
                     target
                 ))
@@ -133,12 +185,14 @@ class Snark:
                     target
                 ))
 
-    def __call__(self, *args):
+    def _initialise(self):
         source = inspect.getsource(self.function)
         source = "\n".join(source.splitlines()[1:])
         code_ast = ast.parse(source)
 
         input_arguments = [_.arg for _ in code_ast.body[0].args.args]
+        self.symbols.extend(input_arguments)
+
         ast_nodes = code_ast.body[0].body
 
         for ast_node in ast_nodes:
@@ -153,12 +207,45 @@ class Snark:
                     self.flatten_expression(target_variable, value)
 
                 elif isinstance(ast_node, ast.Return):
-                    target_variable = "~out"
+                    target_variable = Operand("~out")
 
-                    self.symbols.append(target_variable)
+                    self.symbols.append("~out")
                     self.flatten_expression(target_variable, ast_node.value)
 
-        print("Done")
+        self._calculate_r1cs()
+
+    def _calculate_r1cs(self):
+        self.symbols = [Operand("~one")] + self.symbols
+
+        # Temporary (remove the below lines)
+        self.symbols = ['~one', 'x', '~out', 'sym_1', 'y', 'sym_2']
+
+        self.gates[0], self.gates[1] = self.gates[1], self.gates[0]
+        self.gates[2], self.gates[3] = self.gates[3], self.gates[2]
+
+        A = []
+        B = []
+        C = []
+
+        for gate in self.gates:
+            constraints = gate.r1cs(self.symbols)
+
+            A.append(constraints[0])
+            B.append(constraints[1])
+            C.append(constraints[2])
+
+        print("A")
+        pprint(A)
+
+        print("B")
+        pprint(B)
+
+        print("C")
+        pprint(C)
+
+    def __call__(self, *args):
+        pass
+
 
 @Snark
 def foo(x):
