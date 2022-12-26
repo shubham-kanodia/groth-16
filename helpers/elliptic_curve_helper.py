@@ -27,3 +27,24 @@ class EllipticCurveHelper:
     @staticmethod
     def multiply(point, val):
         return curve.multiply(point, val)
+
+    @staticmethod
+    def add(point1, point2):
+        return curve.add(point1, point2)
+
+    @staticmethod
+    def eq(point1, point2):
+        return curve.eq(point1, point2)
+
+    def evaluate_polynomial_at_hiding(self, poly, powers_of_tau):
+        result = self.multiply(
+            powers_of_tau[0],
+            poly.coeffs[0].val
+        )
+
+        for c, power_of_tau in zip(poly.coeffs[1:], powers_of_tau[1:]):
+            result = self.add(
+                self.multiply(power_of_tau, c.val),
+                result
+            )
+        return result

@@ -4,7 +4,6 @@ from fields.field import FQ
 
 class Polynomial:
     def __init__(self, coeffs: List[Union[float, FQ]]):
-        self.coeffs = coeffs
         self.coeffs = [FQ(_) if not isinstance(_, FQ) else _ for _ in coeffs]
         self.degree = len(coeffs) - 1
 
@@ -60,8 +59,15 @@ class Polynomial:
 
         return final_polynomial
 
+    def evaluate(self, x):
+        result = FQ(0)
+        for idx, c in enumerate(self.coeffs):
+            result += c * FQ(pow(x, idx, FQ.p))
+        return result
 
-# poly_a = Polynomial([1, 3, 0, 1])
+
+poly_a = Polynomial([2, 5, 3, 1])
+print(poly_a.evaluate(1))
 # poly_b = Polynomial([3, 0, 3])
 # A1(1) = 0, A1(2) = 0, A1(3) = 0, A1(4) = 5
 
