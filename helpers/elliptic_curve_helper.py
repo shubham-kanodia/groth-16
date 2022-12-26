@@ -3,7 +3,7 @@ import random
 from py_ecc import optimized_bls12_381 as curve
 
 
-class SetupHelper:
+class EllipticCurveHelper:
     G1 = curve.optimized_curve.G1
     G2 = curve.optimized_curve.G2
 

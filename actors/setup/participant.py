@@ -1,16 +1,16 @@
-from helpers.setup_helper import SetupHelper
+from helpers.elliptic_curve_helper import EllipticCurveHelper
 
 
 class Participant:
-    def __init__(self, setup_helper: SetupHelper):
-        self.setup_helper = setup_helper
+    def __init__(self, elliptic_curve_helper: EllipticCurveHelper):
+        self.elliptic_curve_helper = elliptic_curve_helper
 
     def act(self, points):
         g1_points = points[0]
         g2_points = points[1]
 
         # Generate its own secret as participant (t1)
-        secret_random_number = self.setup_helper.generate_random_number()
+        secret_random_number = self.elliptic_curve_helper.generate_random_number()
 
         # Multiple with its own generated secret random number
         encrypted_powers_of_secret_g1 = [

@@ -1,4 +1,4 @@
-from helpers.setup_helper import SetupHelper
+from helpers.elliptic_curve_helper import EllipticCurveHelper
 
 from actors.setup.participant import Participant
 from actors.setup.initial_setup_generator import InitialSetupGenerator
@@ -6,10 +6,10 @@ from actors.setup.initial_setup_generator import InitialSetupGenerator
 
 N_PARTICIPANTS = 1
 
-setup_helper = SetupHelper()
+elliptic_curve_helper = EllipticCurveHelper()
 
-initial_setup_generator = InitialSetupGenerator(setup_helper)
-participants = [Participant(setup_helper) for _ in range(N_PARTICIPANTS)]
+initial_setup_generator = InitialSetupGenerator(elliptic_curve_helper)
+participants = [Participant(elliptic_curve_helper) for _ in range(N_PARTICIPANTS)]
 
 generated_points = initial_setup_generator.act()
 
