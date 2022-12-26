@@ -5,6 +5,8 @@ from ast import Assign, Return
 from pprint import pprint
 
 from helpers.polynomial_helper import Polynomial
+from helpers.elliptic_curve_helper import EllipticCurveHelper
+from helpers.dummy_trusted_setup import DummyTrustedSetup
 
 
 class Operand:
@@ -92,6 +94,10 @@ class Snark:
         self.symbols_count = 0
         self.symbols = []
 
+        self.ech = EllipticCurveHelper()
+        self.trusted_setup = DummyTrustedSetup(self.ech)
+
+        self.trusted_setup.execute_phase_1()
         self._initialise()
 
     def mk_symbol(self):
@@ -215,6 +221,10 @@ class Snark:
                     self.flatten_expression(target_variable, ast_node.value)
 
         self._calculate_r1cs()
+        self.execute_trusted_setup_phase_2()
+
+    def execute_trusted_setup_phase_2(self):
+        self.trusted_setup.execute_phase_2(self.qap_a, self.qap_b, self.qap_c)
 
     @staticmethod
     def _r1cs_to_qap(matrix):
@@ -226,7 +236,7 @@ class Snark:
                 points.append((x + 1, matrix[x][y]))
 
             polynomial = Polynomial.from_points(points)
-            qap.append(polynomial.coeffs)
+            qap.append(polynomial)
 
         return qap
 
@@ -244,9 +254,9 @@ class Snark:
             B.append(constraints[1])
             C.append(constraints[2])
 
-        qap_a = self._r1cs_to_qap(A)
-        qap_b = self._r1cs_to_qap(B)
-        qap_c = self._r1cs_to_qap(C)
+        self.qap_a = self._r1cs_to_qap(A)
+        self.qap_b = self._r1cs_to_qap(B)
+        self.qap_c = self._r1cs_to_qap(C)
 
     def __call__(self, *args):
         pass
