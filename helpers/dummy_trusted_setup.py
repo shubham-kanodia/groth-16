@@ -19,6 +19,11 @@ class DummyTrustedSetup:
         self.elliptic_curve_helper = elliptic_curve_helper
         self.zx = None
 
+        # Hidden elements made public for tests
+        self.alpha = None
+        self.beta = None
+        self.tau = None
+
         # Phase 1 elements
         self.powers_of_tau_in_g1 = None
         self.powers_of_tau_in_g2 = None
@@ -39,8 +44,8 @@ class DummyTrustedSetup:
         self.zx_powers_of_tau = None
 
     def execute_phase_1(self):
-        alpha = self.elliptic_curve_helper.generate_random_number()
-        beta = self.elliptic_curve_helper.generate_random_number()
+        self.alpha = self.elliptic_curve_helper.generate_random_number()
+        self.beta = self.elliptic_curve_helper.generate_random_number()
         self.tau = self.elliptic_curve_helper.generate_random_number()
 
         self.powers_of_tau_in_g1 = self._compute_powers_of_tau(
@@ -55,25 +60,25 @@ class DummyTrustedSetup:
             self.N2
         )
 
-        self.powers_of_tau_in_g1_product_alpha = [self.elliptic_curve_helper.multiply(_, alpha)
+        self.powers_of_tau_in_g1_product_alpha = [self.elliptic_curve_helper.multiply(_, self.alpha)
                                                   for _ in self.powers_of_tau_in_g1]
 
-        self.powers_of_tau_in_g1_product_beta = [self.elliptic_curve_helper.multiply(_, beta)
+        self.powers_of_tau_in_g1_product_beta = [self.elliptic_curve_helper.multiply(_, self.beta)
                                                  for _ in self.powers_of_tau_in_g1]
 
         self.beta_in_g2 = self.elliptic_curve_helper.multiply(
             self.elliptic_curve_helper.G2,
-            beta
+            self.beta
         )
 
         self.beta_in_g1 = self.elliptic_curve_helper.multiply(
             self.elliptic_curve_helper.G1,
-            beta
+            self.beta
         )
 
         self.alpha_in_g1 = self.elliptic_curve_helper.multiply(
             self.elliptic_curve_helper.G1,
-            alpha
+            self.alpha
         )
 
     def compute_li(self, i, qap_a, qap_b, qap_c):
