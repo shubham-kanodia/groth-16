@@ -8,6 +8,10 @@ from helpers.polynomial_helper import Polynomial
 from helpers.elliptic_curve_helper import EllipticCurveHelper
 from helpers.dummy_trusted_setup import DummyTrustedSetup
 
+from fields.field import FQ
+
+from helpers.utils import *
+
 
 class Operand:
     def __init__(self, val):
@@ -134,7 +138,7 @@ class Snark:
                 )
             )
 
-            self.parse_pow(left_symbol, n-1, new_symbol)
+            self.parse_pow(left_symbol, n - 1, new_symbol)
 
     def flatten_expression(self, target, value):
         if not isinstance(target, Operand):
@@ -233,7 +237,7 @@ class Snark:
         for y in range(len(matrix[0])):
             points = []
             for x in range(len(matrix)):
-                points.append((x + 1, matrix[x][y]))
+                points.append((FQ(x + 1), FQ(matrix[x][y])))
 
             polynomial = Polynomial.from_points(points)
             qap.append(polynomial)
@@ -258,8 +262,98 @@ class Snark:
         self.qap_b = self._r1cs_to_qap(B)
         self.qap_c = self._r1cs_to_qap(C)
 
+    def verify_witness(self, witness):
+
+        A = [poly.evaluate(1) for poly in self.qap_a]
+        B = [poly.evaluate(1) for poly in self.qap_b]
+        C = [poly.evaluate(1) for poly in self.qap_c]
+
+        eq_result = dot(witness, A) * dot(witness, B) - dot(witness, C)
+        assert (eq_result.val == 0)
+
+    def calculate_hx(self, witness):
+        A = Polynomial([FQ(0)])
+        B = Polynomial([FQ(0)])
+        C = Polynomial([FQ(0)])
+
+        for idx, poly in enumerate(self.qap_a):
+            A = A + Polynomial([FQ(witness[idx])]) * poly
+
+        for idx, poly in enumerate(self.qap_b):
+            B = B + Polynomial([FQ(witness[idx])]) * poly
+
+        for idx, poly in enumerate(self.qap_c):
+            C = C + Polynomial([FQ(witness[idx])]) * poly
+
+        hx = (A * B - C) / self.trusted_setup.zx
+        return hx
+
+    def _generate_proof(self):
+        # Verify witness
+        witness = [1, 3, 27, 9, 35, 30]
+        witness = [FQ(_) for _ in witness]
+
+        self.verify_witness(witness)
+
+        r = self.ech.generate_random_number()
+        s = self.ech.generate_random_number()
+
+        w_dot_A_in_g1 = self.ech.add_points([self.ech.multiply(
+            self.ech.evaluate_polynomial_at_hiding(self.qap_a[idx], self.trusted_setup.powers_of_tau_in_g1),
+            witness[idx]
+        ) for idx in range(len(self.qap_a))])
+
+        A_in_g1 = self.ech.add_points([
+            self.trusted_setup.alpha_in_g1,
+            w_dot_A_in_g1,
+            self.ech.multiply(self.trusted_setup.delta_in_g1, r)
+        ])
+
+        w_dot_B_in_g2 = self.ech.add_points([self.ech.multiply(
+            self.ech.evaluate_polynomial_at_hiding(self.qap_b[idx], self.trusted_setup.powers_of_tau_in_g2),
+            witness[idx]
+        ) for idx in range(len(self.qap_b))])
+
+        w_dot_B_in_g1 = self.ech.add_points([self.ech.multiply(
+            self.ech.evaluate_polynomial_at_hiding(self.qap_b[idx], self.trusted_setup.powers_of_tau_in_g1),
+            witness[idx]
+        ) for idx in range(len(self.qap_b))])
+
+        B_in_g2 = self.ech.add_points([
+            self.trusted_setup.beta_in_g2,
+            w_dot_B_in_g2,
+            self.ech.multiply(self.trusted_setup.delta_in_g2, s)
+        ])
+
+        B_in_g1 = self.ech.add_points([
+            self.trusted_setup.beta_in_g1,
+            w_dot_B_in_g1,
+            self.ech.multiply(self.trusted_setup.delta_in_g1, s)
+        ])
+
+        w_dot_li_in_g1 = self.ech.add_points(
+            [self.ech.multiply(self.trusted_setup.li_tau_divided_by_delta[idx], witness[idx])
+             for idx in self.trusted_setup.li_tau_divided_by_delta]
+        )
+
+        hx = self.calculate_hx(witness)
+        product_of_hx_zx = self.ech.add_points([
+            self.ech.multiply(self.trusted_setup.zx_powers_of_tau[idx], coeff.val)
+            for idx, coeff in enumerate(hx.coeffs)
+        ])
+
+        C_in_g1 = self.ech.add_points([
+            w_dot_li_in_g1,
+            product_of_hx_zx,
+            self.ech.multiply(A_in_g1, s),
+            self.ech.multiply(B_in_g1, r),
+            self.ech.multiply(self.trusted_setup.delta_in_g1, (FQ(-1*r) * FQ(s)).val)
+        ])
+
+        return [A_in_g1, B_in_g2, C_in_g1]
+
     def __call__(self, *args):
-        pass
+        self._generate_proof()
 
 
 @Snark
