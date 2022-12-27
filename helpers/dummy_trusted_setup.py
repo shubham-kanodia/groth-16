@@ -17,6 +17,7 @@ class DummyTrustedSetup:
         self.N2 = 16
 
         self.elliptic_curve_helper = elliptic_curve_helper
+        self.zx = None
 
         # Phase 1 elements
         self.powers_of_tau_in_g1 = None
@@ -115,8 +116,8 @@ class DummyTrustedSetup:
         self.li_tau_divided_by_delta = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(delta)).val)
                                         for _ in li_tau]
 
-        zx = self.calculate_zx(len(qap_a))
-        zx_value_at_tau = zx.evaluate(self.tau)
+        self.zx = self.calculate_zx(len(qap_a))
+        zx_value_at_tau = self.zx.evaluate(self.tau)
 
         self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (zx_value_at_tau / FQ(delta)).val)
                                  for _ in self.powers_of_tau_in_g1]
