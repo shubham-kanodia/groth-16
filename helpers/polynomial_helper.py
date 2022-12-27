@@ -73,8 +73,8 @@ class Polynomial:
             poly = Polynomial([1])
             for point_b in points:
                 if point_a != point_b:
-                    poly = poly * Polynomial([-1 * point_b[0], 1])
-                    poly = poly * Polynomial([1.0 / (point_a[0] - point_b[0])])
+                    poly = poly * Polynomial([FQ(-1) * point_b[0], 1])
+                    poly = poly * Polynomial([FQ(1) / (point_a[0] - point_b[0])])
 
             poly = poly * Polynomial([point_a[1]])
             lps.append(poly)
