@@ -31,9 +31,11 @@ class DummyTrustedSetup:
         self.alpha_in_g1 = None
         self.delta_in_g1 = None
         self.delta_in_g2 = None
+        self.gamma_in_g2 = None
 
         # Phase 2 elements
         self.li_tau_divided_by_delta = None
+        self.li_tau_divided_by_gamma = None
         self.zx_powers_of_tau = None
 
     def execute_phase_1(self):
@@ -94,12 +96,13 @@ class DummyTrustedSetup:
     def calculate_zx(n):
         result = Polynomial([1])
 
-        for val in range(1, n+1):
+        for val in range(1, n + 1):
             result = result * Polynomial([-1 * val, 1])
         return result
 
     def execute_phase_2(self, qap_a, qap_b, qap_c):
         delta = self.elliptic_curve_helper.generate_random_number()
+        gamma = self.elliptic_curve_helper.generate_random_number()
 
         self.delta_in_g1 = self.elliptic_curve_helper.multiply(
             self.elliptic_curve_helper.G1, delta
@@ -109,12 +112,20 @@ class DummyTrustedSetup:
             self.elliptic_curve_helper.G2, delta
         )
 
+        self.gamma_in_g2 = self.elliptic_curve_helper.multiply(
+            self.elliptic_curve_helper.G2,
+            gamma
+        )
+
         li_tau = []
         for i in range(0, len(qap_a)):
             li_tau.append(self.compute_li(i, qap_a, qap_b, qap_c))
 
         self.li_tau_divided_by_delta = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(delta)).val)
-                                        for _ in li_tau]
+                                        for _ in li_tau[1:]]
+
+        self.li_tau_divided_by_gamma = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(gamma)).val)
+                                        for _ in li_tau[:1]]
 
         self.zx = self.calculate_zx(len(qap_a))
         zx_value_at_tau = self.zx.evaluate(self.tau)
