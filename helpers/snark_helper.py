@@ -277,13 +277,13 @@ class Snark:
         C = Polynomial([FQ(0)])
 
         for idx, poly in enumerate(self.qap_a):
-            A = A + Polynomial([FQ(witness[idx])]) * poly
+            A = A + Polynomial([witness[idx]]) * poly
 
         for idx, poly in enumerate(self.qap_b):
-            B = B + Polynomial([FQ(witness[idx])]) * poly
+            B = B + Polynomial([witness[idx]]) * poly
 
         for idx, poly in enumerate(self.qap_c):
-            C = C + Polynomial([FQ(witness[idx])]) * poly
+            C = C + Polynomial([witness[idx]]) * poly
 
         hx = (A * B - C) / self.trusted_setup.zx
         return hx
@@ -300,7 +300,7 @@ class Snark:
 
         w_dot_A_in_g1 = self.ech.add_points([self.ech.multiply(
             self.ech.evaluate_polynomial_at_hiding(self.qap_a[idx], self.trusted_setup.powers_of_tau_in_g1),
-            witness[idx]
+            witness[idx].val
         ) for idx in range(len(self.qap_a))])
 
         A_in_g1 = self.ech.add_points([
@@ -311,12 +311,12 @@ class Snark:
 
         w_dot_B_in_g2 = self.ech.add_points([self.ech.multiply(
             self.ech.evaluate_polynomial_at_hiding(self.qap_b[idx], self.trusted_setup.powers_of_tau_in_g2),
-            witness[idx]
+            witness[idx].val
         ) for idx in range(len(self.qap_b))])
 
         w_dot_B_in_g1 = self.ech.add_points([self.ech.multiply(
             self.ech.evaluate_polynomial_at_hiding(self.qap_b[idx], self.trusted_setup.powers_of_tau_in_g1),
-            witness[idx]
+            witness[idx].val
         ) for idx in range(len(self.qap_b))])
 
         B_in_g2 = self.ech.add_points([
@@ -332,8 +332,8 @@ class Snark:
         ])
 
         w_dot_li_in_g1 = self.ech.add_points(
-            [self.ech.multiply(self.trusted_setup.li_tau_divided_by_delta[idx], witness[idx])
-             for idx in self.trusted_setup.li_tau_divided_by_delta]
+            [self.ech.multiply(self.trusted_setup.li_tau_divided_by_delta[idx], witness[idx].val)
+             for idx in range(len(self.trusted_setup.li_tau_divided_by_delta))]
         )
 
         hx = self.calculate_hx(witness)
