@@ -112,13 +112,13 @@ class DummyTrustedSetup:
         for i in range(0, len(qap_a)):
             li_tau.append(self.compute_li(i, qap_a, qap_b, qap_c))
 
-        self.li_tau_divided_by_delta = [self.elliptic_curve_helper.multiply(_, FQ(1) / FQ(delta))
+        self.li_tau_divided_by_delta = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(delta)).val)
                                         for _ in li_tau]
 
         zx = self.calculate_zx(len(qap_a))
         zx_value_at_tau = zx.evaluate(self.tau)
 
-        self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, FQ(zx_value_at_tau) / FQ(delta))
+        self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (zx_value_at_tau / FQ(delta)).val)
                                  for _ in self.powers_of_tau_in_g1]
 
     def get_prover_key(self):
