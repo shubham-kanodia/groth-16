@@ -288,11 +288,8 @@ class Snark:
         hx = (A * B - C) / self.trusted_setup.zx
         return hx
 
-    def _generate_proof(self):
+    def _generate_proof(self, witness):
         # Verify witness
-        witness = [1, 3, 27, 9, 35, 30]
-        witness = [FQ(_) for _ in witness]
-
         self.verify_witness(witness)
 
         r = self.ech.generate_random_number()
@@ -332,8 +329,8 @@ class Snark:
         ])
 
         w_dot_li_in_g1 = self.ech.add_points(
-            [self.ech.multiply(self.trusted_setup.li_tau_divided_by_delta[idx], witness[idx].val)
-             for idx in range(len(self.trusted_setup.li_tau_divided_by_delta))]
+            [self.ech.multiply(self.trusted_setup.li_tau_divided_by_delta[idx - 1], witness[idx].val)
+             for idx in range(1, len(self.trusted_setup.li_tau_divided_by_delta))]
         )
 
         hx = self.calculate_hx(witness)
@@ -352,9 +349,28 @@ class Snark:
 
         return [A_in_g1, B_in_g2, C_in_g1]
 
-    def __call__(self, *args):
-        self._generate_proof()
+    def verify(self, proof, public_inputs):
+        product_for_public_inputs = self.ech.multiply(
+            self.trusted_setup.li_tau_divided_by_gamma[0],
+            public_inputs[0].val
+        )
 
+        left = self.ech.pairing(proof[0], proof[1])
+
+        right_1 = self.ech.pairing(self.trusted_setup.alpha_in_g1, self.trusted_setup.beta_in_g2)
+        right_2 = self.ech.pairing(product_for_public_inputs, self.trusted_setup.gamma_in_g2)
+        right_3 = self.ech.pairing(proof[2], self.trusted_setup.delta_in_g2)
+
+        right = right_1 + right_2 + right_3
+
+        print(left == right)
+
+    def __call__(self, *args):
+        witness = [1, 3, 27, 9, 35, 30]
+        witness = [FQ(_) for _ in witness]
+
+        proof = self._generate_proof(witness)
+        self.verify(proof, witness[:1])
 
 @Snark
 def foo(x):
@@ -362,4 +378,4 @@ def foo(x):
     return x + y + 5
 
 
-foo(10)
+foo(3)

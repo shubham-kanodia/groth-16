@@ -57,3 +57,7 @@ class EllipticCurveHelper:
                 result
             )
         return result
+
+    @staticmethod
+    def pairing(point_in_g1, point_in_g2):
+        return curve.pairing(point_in_g2, point_in_g1)
