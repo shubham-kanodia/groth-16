@@ -1,6 +1,7 @@
 import random
 
 from py_ecc import optimized_bls12_381 as curve
+from fields.field import FQ
 
 
 class EllipticCurveHelper:
@@ -16,7 +17,7 @@ class EllipticCurveHelper:
     N2 = 16
 
     def generate_random_number(self):
-        return random.randint(self.RANDOM_LOWER_LIMIT, self.RANDOM_UPPER_LIMIT)
+        return FQ(random.randint(self.RANDOM_LOWER_LIMIT, self.RANDOM_UPPER_LIMIT)).val
 
     def g1_encrypt(self, val):
         return curve.multiply(self.G1, val)
