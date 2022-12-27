@@ -39,6 +39,32 @@ class Polynomial:
 
         return Polynomial(coeffs_a)
 
+    def __truediv__(self, other):
+        result_coeffs = [FQ(0) for _ in range(self.degree - other.degree + 1)]
+        remainder = self
+
+        for idx in range(self.degree - other.degree + 1):
+            self_power_of_x = len(remainder.coeffs) - idx - 1
+            other_power_of_x = len(other.coeffs) - 1
+
+            self_coeff = remainder.coeffs[self_power_of_x]
+            other_coeff = other.coeffs[other_power_of_x]
+
+            max_degree = self_power_of_x - other_power_of_x
+
+            mult_poly = [FQ(0) if idx < max_degree else (self_coeff / other_coeff) for idx in range(max_degree + 1)]
+            result_coeffs[max_degree] = (self_coeff / other_coeff)
+
+            remainder = remainder - (other * Polynomial(mult_poly))
+
+        if not all([_.val for _ in remainder.coeffs]):
+            return Polynomial(result_coeffs)
+        else:
+            raise Exception("Polynomials not divisible")
+
+    def __repr__(self):
+        return f"{', '.join([str(_.val) for _ in self.coeffs])}"
+
     @staticmethod
     def from_points(points):
         lps = []
@@ -64,12 +90,3 @@ class Polynomial:
         for idx, c in enumerate(self.coeffs):
             result += c * FQ(pow(x, idx, FQ.p))
         return result
-
-
-poly_a = Polynomial([2, 5, 3, 1])
-print(poly_a.evaluate(1))
-# poly_b = Polynomial([3, 0, 3])
-# A1(1) = 0, A1(2) = 0, A1(3) = 0, A1(4) = 5
-
-# points = [(1, 0), (2, 0), (3, 0), (4, 5)]
-# print(Polynomial.from_points(points).coeffs)
