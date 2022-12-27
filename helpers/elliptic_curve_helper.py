@@ -33,6 +33,14 @@ class EllipticCurveHelper:
     def add(point1, point2):
         return curve.add(point1, point2)
 
+    def add_points(self, points):
+        result = points[0]
+
+        for point in points[1:]:
+            result = self.add(result, point)
+
+        return result
+
     @staticmethod
     def eq(point1, point2):
         return curve.eq(point1, point2)
