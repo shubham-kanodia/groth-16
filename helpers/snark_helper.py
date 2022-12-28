@@ -272,9 +272,9 @@ class Snark:
 
     def verify_witness(self, witness):
 
-        A = [poly.evaluate(1) for poly in self.qap_a]
-        B = [poly.evaluate(1) for poly in self.qap_b]
-        C = [poly.evaluate(1) for poly in self.qap_c]
+        A = [FQ(poly.evaluate(1)) for poly in self.qap_a]
+        B = [FQ(poly.evaluate(1)) for poly in self.qap_b]
+        C = [FQ(poly.evaluate(1)) for poly in self.qap_c]
 
         eq_result = dot(witness, A) * dot(witness, B) - dot(witness, C)
         assert (eq_result.val == 0)
@@ -378,12 +378,12 @@ class Snark:
         self.verify(proof, witness[:1])
 
 
-# @Snark
-# def foo(x):
-#     y = x ** 3
-#     return x + y + 5
-#
-#     # return x ** 2 + 4
-#
-#
-# foo(3)
+@Snark
+def foo(x):
+    y = x ** 3
+    return x + y + 5
+
+    # return x ** 2 + 4
+
+
+foo(3)

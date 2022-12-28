@@ -135,7 +135,7 @@ class DummyTrustedSetup:
         self.zx = self.calculate_zx(qap_a[0].degree + 1)
         zx_value_at_tau = self.zx.evaluate(self.tau)
 
-        self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (zx_value_at_tau / FQ(delta)).val)
+        self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (FQ(zx_value_at_tau) / FQ(delta)).val)
                                  for _ in self.powers_of_tau_in_g1]
 
     def get_prover_key(self):

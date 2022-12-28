@@ -86,9 +86,9 @@ class Polynomial:
         return final_polynomial
 
     def evaluate(self, x):
-        result = FQ(0)
+        result = 0
         for idx, c in enumerate(self.coeffs):
-            result += c * FQ(pow(x, idx, FQ.p))
+            result += c.val * pow(x, idx)
         return result
 
     @staticmethod
