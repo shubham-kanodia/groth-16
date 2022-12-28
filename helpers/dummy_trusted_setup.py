@@ -31,6 +31,8 @@ class DummyTrustedSetup:
         self.powers_of_tau_in_g1_product_alpha = None
         self.powers_of_tau_in_g1_product_beta = None
 
+        self.delta = None
+        self.gamma = None
         self.beta_in_g1 = None
         self.beta_in_g2 = None
         self.alpha_in_g1 = None
@@ -106,36 +108,36 @@ class DummyTrustedSetup:
         return result
 
     def execute_phase_2(self, qap_a, qap_b, qap_c):
-        delta = self.elliptic_curve_helper.generate_random_number()
-        gamma = self.elliptic_curve_helper.generate_random_number()
+        self.delta = self.elliptic_curve_helper.generate_random_number()
+        self.gamma = self.elliptic_curve_helper.generate_random_number()
 
         self.delta_in_g1 = self.elliptic_curve_helper.multiply(
-            self.elliptic_curve_helper.G1, delta
+            self.elliptic_curve_helper.G1, self.delta
         )
 
         self.delta_in_g2 = self.elliptic_curve_helper.multiply(
-            self.elliptic_curve_helper.G2, delta
+            self.elliptic_curve_helper.G2, self.delta
         )
 
         self.gamma_in_g2 = self.elliptic_curve_helper.multiply(
             self.elliptic_curve_helper.G2,
-            gamma
+            self.gamma
         )
 
         li_tau = []
         for i in range(0, len(qap_a)):
             li_tau.append(self.compute_li(i, qap_a, qap_b, qap_c))
 
-        self.li_tau_divided_by_delta = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(delta)).val)
+        self.li_tau_divided_by_delta = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(self.delta)).val)
                                         for _ in li_tau[1:]]
 
-        self.li_tau_divided_by_gamma = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(gamma)).val)
+        self.li_tau_divided_by_gamma = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(self.gamma)).val)
                                         for _ in li_tau[:1]]
 
         self.zx = self.calculate_zx(qap_a[0].degree + 1)
         zx_value_at_tau = self.zx.evaluate(self.tau)
 
-        self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (FQ(zx_value_at_tau) / FQ(delta)).val)
+        self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (FQ(zx_value_at_tau) / FQ(self.delta)).val)
                                  for _ in self.powers_of_tau_in_g1]
 
     def get_prover_key(self):
