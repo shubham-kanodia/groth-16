@@ -349,7 +349,7 @@ class Snark:
             product_of_hx_zx,
             self.ech.multiply(A_in_g1, self.s),
             self.ech.multiply(B_in_g1, self.r),
-            self.ech.multiply(self.trusted_setup.delta_in_g1, (FQ(-1*self.r) * FQ(self.s)).val)
+            self.ech.multiply(self.trusted_setup.delta_in_g1, FQ(-1).val * self.r * self.s)
         ])
 
         return [A_in_g1, B_in_g2, C_in_g1]

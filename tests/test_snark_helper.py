@@ -168,3 +168,61 @@ class TestSnarkHelper(TestCase):
                 product_of_hx_zx
             )
         )
+
+    def test_r_s_delta_component(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        trusted_setup = self.snark_helper.trusted_setup
+        ech = self.snark_helper.ech
+
+        self.snark_helper._generate_proof(test_witness)
+
+        r, s, delta = self.snark_helper.r, self.snark_helper.s, trusted_setup.delta
+
+        evaluation_from_original_values = ech.g1_encrypt(FQ(-1).val * r * s * delta)
+        evaluation_from_hidings = ech.multiply(trusted_setup.delta_in_g1, FQ(-1*r).val * s)
+
+        ech.eq(
+            evaluation_from_original_values,
+            evaluation_from_hidings
+        )
+
+    def test_proof_C(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        alpha, beta, tau = self.snark_helper.trusted_setup.alpha, self.snark_helper.trusted_setup.beta, \
+                           self.snark_helper.trusted_setup.tau
+
+        proof = self.snark_helper._generate_proof(test_witness)
+        A = self._get_first_element_of_proof(test_witness)
+        B = self._get_second_element_of_proof(test_witness)
+
+        elem_2 = self.snark_helper.s * A
+        elem_3 = self.snark_helper.r * B
+        elem_4 = FQ(-1).val * self.snark_helper.r * self.snark_helper.s * self.snark_helper.trusted_setup.delta
+
+        li_tau = [beta * self.snark_helper.qap_a[idx].evaluate(tau) +
+                  alpha * self.snark_helper.qap_b[idx].evaluate(tau) +
+                  self.snark_helper.qap_c[idx].evaluate(tau)
+                  for idx in range(len(self.snark_helper.qap_a))]
+
+        l_tau = sum([test_witness[idx].val * li_tau[idx] for idx in range(1, len(li_tau))])
+        h_tau = self.snark_helper.calculate_hx(test_witness).evaluate(tau)
+        z_tau = self.snark_helper.trusted_setup.zx.evaluate(tau)
+
+        delta_inverse = (FQ(1) / FQ(self.snark_helper.trusted_setup.delta)).val
+
+        elem_1 = (l_tau + h_tau * z_tau) * delta_inverse
+        C_in_g1 = self.snark_helper.ech.g1_encrypt(elem_1 + elem_2 + elem_3 + elem_4)
+
+        # Check the second element of proof is s.A
+        self.assertTrue(
+            self.snark_helper.ech.eq(
+                self.snark_helper.ech.g1_encrypt(elem_2),
+                self.snark_helper.ech.multiply(proof[0], self.snark_helper.s)
+            )
+        )
+
+        self.assertTrue(self.snark_helper.ech.eq(C_in_g1, proof[2]))
