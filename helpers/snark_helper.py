@@ -90,10 +90,17 @@ class TypeMultiplication:
         return a, b, c
 
 
+class SourceParser:
+    @staticmethod
+    def get_source(function):
+        return inspect.getsource(function)
+
+
 class Snark:
 
-    def __init__(self, function):
+    def __init__(self, function, source_parser=SourceParser()):
         self.function = function
+        self.source_parser = source_parser
         self.gates = []
         self.symbols_count = 0
         self.symbols = []
@@ -198,7 +205,8 @@ class Snark:
                 ))
 
     def _initialise(self):
-        source = inspect.getsource(self.function)
+        source = self.source_parser.get_source(self.function)
+
         source = "\n".join(source.splitlines()[1:])
         code_ast = ast.parse(source)
 
@@ -272,18 +280,14 @@ class Snark:
         assert (eq_result.val == 0)
 
     def calculate_hx(self, witness):
-        A = Polynomial([FQ(0)])
-        B = Polynomial([FQ(0)])
-        C = Polynomial([FQ(0)])
+        A = Polynomial.sum([Polynomial([witness[idx]]) * poly
+                            for idx, poly in enumerate(self.qap_a)])
 
-        for idx, poly in enumerate(self.qap_a):
-            A = A + Polynomial([witness[idx]]) * poly
+        B = Polynomial.sum([Polynomial([witness[idx]]) * poly
+                            for idx, poly in enumerate(self.qap_b)])
 
-        for idx, poly in enumerate(self.qap_b):
-            B = B + Polynomial([witness[idx]]) * poly
-
-        for idx, poly in enumerate(self.qap_c):
-            C = C + Polynomial([witness[idx]]) * poly
+        C = Polynomial.sum([Polynomial([witness[idx]]) * poly
+                            for idx, poly in enumerate(self.qap_c)])
 
         hx = (A * B - C) / self.trusted_setup.zx
         return hx
@@ -367,15 +371,19 @@ class Snark:
 
     def __call__(self, *args):
         witness = [1, 3, 27, 9, 35, 30]
+        # witness = [1, 3, 13, 9]
         witness = [FQ(_) for _ in witness]
 
         proof = self._generate_proof(witness)
         self.verify(proof, witness[:1])
 
-@Snark
-def foo(x):
-    y = x ** 3
-    return x + y + 5
 
-
-foo(3)
+# @Snark
+# def foo(x):
+#     y = x ** 3
+#     return x + y + 5
+#
+#     # return x ** 2 + 4
+#
+#
+# foo(3)
