@@ -108,10 +108,7 @@ class TestSnarkHelper(TestCase):
         )
         return w_dot_li_in_g1
 
-    def test_w_dot_li_component(self):
-        test_witness = [1, 3, 27, 9, 35, 30]
-        test_witness = [FQ(_) for _ in test_witness]
-
+    def calculate_l_tau_delta_inverse_from_original_values(self, test_witness):
         trusted_setup = self.snark_helper.trusted_setup
         ech = self.snark_helper.ech
 
@@ -124,21 +121,19 @@ class TestSnarkHelper(TestCase):
 
         l_tau = sum([test_witness[idx].val * li_tau[idx] for idx in range(1, len(li_tau))])
 
-        for idx in range(1, len(test_witness)):
-            li_tau_by_delta_from_hidings = ech.multiply(trusted_setup.li_tau_divided_by_delta[idx - 1],
-                                                        test_witness[idx].val)
-            li_tau_by_delta_from_original_values = ech.g1_encrypt(
-                (FQ(1) / FQ(trusted_setup.delta)).val * li_tau[idx] * test_witness[idx].val
-            )
+        delta_inverse = (FQ(1) / FQ(trusted_setup.delta)).val
 
-            self.assertTrue(
-                ech.eq(li_tau_by_delta_from_original_values, li_tau_by_delta_from_hidings)
-            )
+        return ech.g1_encrypt(delta_inverse * l_tau)
+
+    def test_w_dot_li_component(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        ech = self.snark_helper.ech
 
         actual_value = self.get_w_dot_li_in_g1(test_witness)
-        out = (FQ(1) / FQ(trusted_setup.delta)).val
+        expected_value = self.calculate_l_tau_delta_inverse_from_original_values(test_witness)
 
-        expected_value = ech.g1_encrypt(out * l_tau)
         self.assertTrue(ech.eq(
             actual_value, expected_value
         ))
