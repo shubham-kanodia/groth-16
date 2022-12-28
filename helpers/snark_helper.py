@@ -272,12 +272,13 @@ class Snark:
 
     def verify_witness(self, witness):
 
-        A = [FQ(poly.evaluate(1)) for poly in self.qap_a]
-        B = [FQ(poly.evaluate(1)) for poly in self.qap_b]
-        C = [FQ(poly.evaluate(1)) for poly in self.qap_c]
+        for x in range(1, self.qap_a[0].degree + 2):
+            A = [FQ(poly.evaluate(x)) for poly in self.qap_a]
+            B = [FQ(poly.evaluate(x)) for poly in self.qap_b]
+            C = [FQ(poly.evaluate(x)) for poly in self.qap_c]
 
-        eq_result = dot(witness, A) * dot(witness, B) - dot(witness, C)
-        assert (eq_result.val == 0)
+            eq_result = dot(witness, A) * dot(witness, B) - dot(witness, C)
+            assert (eq_result.val == 0)
 
     def calculate_hx(self, witness):
         A = Polynomial.sum([Polynomial([witness[idx]]) * poly
@@ -296,8 +297,8 @@ class Snark:
         # Verify witness
         self.verify_witness(witness)
 
-        r = self.ech.generate_random_number()
-        s = self.ech.generate_random_number()
+        self.r = self.ech.generate_random_number()
+        self.s = self.ech.generate_random_number()
 
         w_dot_A_in_g1 = self.ech.add_points([self.ech.multiply(
             self.ech.evaluate_polynomial_at_hiding(self.qap_a[idx], self.trusted_setup.powers_of_tau_in_g1),
@@ -307,7 +308,7 @@ class Snark:
         A_in_g1 = self.ech.add_points([
             self.trusted_setup.alpha_in_g1,
             w_dot_A_in_g1,
-            self.ech.multiply(self.trusted_setup.delta_in_g1, r)
+            self.ech.multiply(self.trusted_setup.delta_in_g1, self.r)
         ])
 
         w_dot_B_in_g2 = self.ech.add_points([self.ech.multiply(
@@ -323,13 +324,13 @@ class Snark:
         B_in_g2 = self.ech.add_points([
             self.trusted_setup.beta_in_g2,
             w_dot_B_in_g2,
-            self.ech.multiply(self.trusted_setup.delta_in_g2, s)
+            self.ech.multiply(self.trusted_setup.delta_in_g2, self.s)
         ])
 
         B_in_g1 = self.ech.add_points([
             self.trusted_setup.beta_in_g1,
             w_dot_B_in_g1,
-            self.ech.multiply(self.trusted_setup.delta_in_g1, s)
+            self.ech.multiply(self.trusted_setup.delta_in_g1, self.s)
         ])
 
         w_dot_li_in_g1 = self.ech.add_points(
@@ -346,9 +347,9 @@ class Snark:
         C_in_g1 = self.ech.add_points([
             w_dot_li_in_g1,
             product_of_hx_zx,
-            self.ech.multiply(A_in_g1, s),
-            self.ech.multiply(B_in_g1, r),
-            self.ech.multiply(self.trusted_setup.delta_in_g1, (FQ(-1*r) * FQ(s)).val)
+            self.ech.multiply(A_in_g1, self.s),
+            self.ech.multiply(B_in_g1, self.r),
+            self.ech.multiply(self.trusted_setup.delta_in_g1, (FQ(-1*self.r) * FQ(self.s)).val)
         ])
 
         return [A_in_g1, B_in_g2, C_in_g1]
@@ -378,12 +379,12 @@ class Snark:
         self.verify(proof, witness[:1])
 
 
-@Snark
-def foo(x):
-    y = x ** 3
-    return x + y + 5
-
-    # return x ** 2 + 4
-
-
-foo(3)
+# @Snark
+# def foo(x):
+#     y = x ** 3
+#     return x + y + 5
+#
+#     # return x ** 2 + 4
+#
+#
+# foo(3)
