@@ -132,7 +132,7 @@ class DummyTrustedSetup:
         self.li_tau_divided_by_gamma = [self.elliptic_curve_helper.multiply(_, (FQ(1) / FQ(gamma)).val)
                                         for _ in li_tau[:1]]
 
-        self.zx = self.calculate_zx(len(qap_a))
+        self.zx = self.calculate_zx(qap_a[0].degree + 1)
         zx_value_at_tau = self.zx.evaluate(self.tau)
 
         self.zx_powers_of_tau = [self.elliptic_curve_helper.multiply(_, (zx_value_at_tau / FQ(delta)).val)
