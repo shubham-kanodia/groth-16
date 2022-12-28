@@ -335,7 +335,7 @@ class Snark:
 
         w_dot_li_in_g1 = self.ech.add_points(
             [self.ech.multiply(self.trusted_setup.li_tau_divided_by_delta[idx - 1], witness[idx].val)
-             for idx in range(1, len(self.trusted_setup.li_tau_divided_by_delta))]
+             for idx in range(1, len(self.trusted_setup.li_tau_divided_by_delta) + 1)]
         )
 
         hx = self.calculate_hx(witness)
