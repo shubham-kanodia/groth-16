@@ -36,3 +36,22 @@ class TestSnarkHelper(TestCase):
 
         for coeff_1, coeff_2 in zip(left.coeffs, right.coeffs):
             self.assertTrue(coeff_1.val == coeff_2.val)
+
+    def test_lx(self):
+        qap_a = self.snark_helper.qap_a
+        qap_b = self.snark_helper.qap_b
+        qap_c = self.snark_helper.qap_c
+
+        trusted_setup = self.snark_helper.trusted_setup
+        ech = self.snark_helper.ech
+
+        for idx in range(len(qap_a)):
+            result_in_g1 = self.snark_helper.trusted_setup.compute_li(idx, qap_a, qap_b, qap_c)
+
+            evaluation = trusted_setup.beta * qap_a[idx].evaluate(trusted_setup.tau) + \
+                         trusted_setup.alpha * qap_b[idx].evaluate(trusted_setup.tau) + \
+                         qap_c[idx].evaluate(trusted_setup.tau)
+
+            evaluation_in_g1 = ech.multiply(ech.G1, evaluation)
+
+            self.assertTrue(ech.eq(result_in_g1, evaluation_in_g1))
