@@ -55,3 +55,45 @@ class TestSnarkHelper(TestCase):
             evaluation_in_g1 = ech.multiply(ech.G1, evaluation)
 
             self.assertTrue(ech.eq(result_in_g1, evaluation_in_g1))
+
+    def _get_first_element_of_proof(self, test_witness):
+        trusted_setup = self.snark_helper.trusted_setup
+
+        elem_1 = trusted_setup.alpha
+        elem_2 = self.snark_helper.r * trusted_setup.delta
+        A_tau = sum([test_witness[idx].val * self.snark_helper.qap_a[idx].evaluate(trusted_setup.tau)
+                     for idx in range(len(self.snark_helper.qap_a))])
+
+        return elem_1 + elem_2 + A_tau
+
+    def test_proof_A(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+
+        test_witness = [FQ(_) for _ in test_witness]
+        proof = self.snark_helper._generate_proof(test_witness)
+
+        A = self._get_first_element_of_proof(test_witness)
+        A_in_g1 = self.snark_helper.ech.g1_encrypt(A)
+
+        self.assertTrue(self.snark_helper.ech.eq(proof[0], A_in_g1))
+
+    def _get_second_element_of_proof(self, test_witness):
+        trusted_setup = self.snark_helper.trusted_setup
+
+        elem_1 = trusted_setup.beta
+        elem_2 = self.snark_helper.s * trusted_setup.delta
+        B_tau = sum([test_witness[idx].val * self.snark_helper.qap_b[idx].evaluate(trusted_setup.tau)
+                     for idx in range(len(self.snark_helper.qap_b))])
+
+        return elem_1 + elem_2 + B_tau
+
+    def test_proof_B(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        proof = self.snark_helper._generate_proof(test_witness)
+
+        B = self._get_second_element_of_proof(test_witness)
+        B_in_g2 = self.snark_helper.ech.g2_encrypt(B)
+
+        self.assertTrue(self.snark_helper.ech.eq(proof[1], B_in_g2))
