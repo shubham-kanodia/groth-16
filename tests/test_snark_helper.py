@@ -137,3 +137,34 @@ class TestSnarkHelper(TestCase):
         self.assertTrue(ech.eq(
             actual_value, expected_value
         ))
+
+    def get_zx_hx_by_delta_component(self, test_witness):
+        trusted_setup = self.snark_helper.trusted_setup
+        ech = self.snark_helper.ech
+
+        hx = self.snark_helper.calculate_hx(test_witness)
+
+        delta_inverse = (FQ(1) / FQ(trusted_setup.delta)).val
+        product_of_hx_zx_by_delta_with_original_values = trusted_setup.zx.evaluate(trusted_setup.tau) * \
+                                                         hx.evaluate(trusted_setup.tau) * delta_inverse
+
+        return ech.g1_encrypt(product_of_hx_zx_by_delta_with_original_values)
+
+    def test_zx_hx_by_delta_component(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        hx = self.snark_helper.calculate_hx(test_witness)
+
+        product_of_hx_zx = self.snark_helper.ech.add_points([
+            self.snark_helper.ech.multiply(self.snark_helper.trusted_setup.zx_powers_of_tau[idx], coeff.val)
+            for idx, coeff in enumerate(hx.coeffs)
+        ])
+
+        expected_value = self.get_zx_hx_by_delta_component(test_witness)
+        self.assertTrue(
+            self.snark_helper.ech.eq(
+                expected_value,
+                product_of_hx_zx
+            )
+        )
