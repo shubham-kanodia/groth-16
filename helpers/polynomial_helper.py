@@ -90,3 +90,12 @@ class Polynomial:
         for idx, c in enumerate(self.coeffs):
             result += c * FQ(pow(x, idx, FQ.p))
         return result
+
+    @staticmethod
+    def sum(polynomials):
+        result = Polynomial([FQ(0)])
+
+        for poly in polynomials:
+            result = result + poly
+
+        return result
