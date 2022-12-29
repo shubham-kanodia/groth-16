@@ -366,12 +366,12 @@ class Snark:
         right_2 = self.ech.pairing(product_for_public_inputs, self.trusted_setup.gamma_in_g2)
         right_3 = self.ech.pairing(proof[2], self.trusted_setup.delta_in_g2)
 
-        right = right_1 + right_2 + right_3
+        right = right_1 * right_2 * right_3
 
         print(left == right)
 
     def __call__(self, *args):
-        witness = [1, 3, 27, 9, 35, 30]
+        witness = [1, 3, 27, 9, 35, 31]
         # witness = [1, 3, 13, 9]
         witness = [FQ(_) for _ in witness]
 
@@ -379,12 +379,12 @@ class Snark:
         self.verify(proof, witness[:1])
 
 
-# @Snark
-# def foo(x):
-#     y = x ** 3
-#     return x + y + 5
-#
-#     # return x ** 2 + 4
-#
-#
-# foo(3)
+@Snark
+def foo(x):
+    y = x ** 3
+    return x + y + 5
+
+    # return x ** 2 + 4
+
+
+foo(3)
