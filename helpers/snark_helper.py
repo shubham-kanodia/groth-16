@@ -368,7 +368,7 @@ class Snark:
 
         right = right_1 * right_2 * right_3
 
-        print(left == right)
+        return left == right
 
     def __call__(self, *args):
         witness = [1, 3, 27, 9, 35, 31]
@@ -379,12 +379,12 @@ class Snark:
         self.verify(proof, witness[:1])
 
 
-@Snark
-def foo(x):
-    y = x ** 3
-    return x + y + 5
-
-    # return x ** 2 + 4
-
-
-foo(3)
+# @Snark
+# def foo(x):
+#     y = x ** 3
+#     return x + y + 5
+#
+#     # return x ** 2 + 4
+#
+#
+# foo(3)

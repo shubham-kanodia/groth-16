@@ -181,21 +181,17 @@ class TestSnarkHelper(TestCase):
         r, s, delta = self.snark_helper.r, self.snark_helper.s, trusted_setup.delta
 
         evaluation_from_original_values = ech.g1_encrypt(FQ(-1).val * r * s * delta)
-        evaluation_from_hidings = ech.multiply(trusted_setup.delta_in_g1, FQ(-1*r).val * s)
+        evaluation_from_hidings = ech.multiply(trusted_setup.delta_in_g1, FQ(-1 * r).val * s)
 
         ech.eq(
             evaluation_from_original_values,
             evaluation_from_hidings
         )
 
-    def test_proof_C(self):
-        test_witness = [1, 3, 27, 9, 35, 30]
-        test_witness = [FQ(_) for _ in test_witness]
-
+    def _get_third_element_of_proof(self, test_witness):
         alpha, beta, tau = self.snark_helper.trusted_setup.alpha, self.snark_helper.trusted_setup.beta, \
                            self.snark_helper.trusted_setup.tau
 
-        proof = self.snark_helper._generate_proof(test_witness)
         A = self._get_first_element_of_proof(test_witness)
         B = self._get_second_element_of_proof(test_witness)
 
@@ -215,14 +211,107 @@ class TestSnarkHelper(TestCase):
         delta_inverse = (FQ(1) / FQ(self.snark_helper.trusted_setup.delta)).val
 
         elem_1 = (l_tau + h_tau * z_tau) * delta_inverse
-        C_in_g1 = self.snark_helper.ech.g1_encrypt(elem_1 + elem_2 + elem_3 + elem_4)
+
+        return elem_1 + elem_2 + elem_3 + elem_4
+
+    def test_proof_C(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        proof = self.snark_helper._generate_proof(test_witness)
+
+        C = self._get_third_element_of_proof(test_witness)
+        C_in_g1 = self.snark_helper.ech.g1_encrypt(C)
 
         # Check the second element of proof is s.A
+        self.assertTrue(self.snark_helper.ech.eq(C_in_g1, proof[2]))
+
+    def verify(self, proof, public_inputs):
+        ech = self.snark_helper.ech
+        trusted_setup = self.snark_helper.trusted_setup
+
+        product_for_public_inputs = ech.multiply(
+            trusted_setup.li_tau_divided_by_gamma[0],
+            public_inputs[0].val
+        )
+
+        left = ech.pairing(proof[0], proof[1])
+
+        right_1 = ech.pairing(trusted_setup.alpha_in_g1, trusted_setup.beta_in_g2)
+        right_2 = ech.pairing(product_for_public_inputs, trusted_setup.gamma_in_g2)
+        right_3 = ech.pairing(proof[2], trusted_setup.delta_in_g2)
+
+        return right_1, right_2, right_3, left
+
+    def test_l_tau_delta_inverse(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        trusted_setup = self.snark_helper.trusted_setup
+        ech = self.snark_helper.ech
+
+        alpha, beta, tau = trusted_setup.alpha, trusted_setup.beta, trusted_setup.tau
+
+        li_tau = [beta * self.snark_helper.qap_a[idx].evaluate(tau) +
+                  alpha * self.snark_helper.qap_b[idx].evaluate(tau) +
+                  self.snark_helper.qap_c[idx].evaluate(tau)
+                  for idx in range(len(self.snark_helper.qap_a))]
+
+        l_tau = sum([test_witness[idx].val * li_tau[idx] for idx in range(1, len(li_tau))])
+
         self.assertTrue(
-            self.snark_helper.ech.eq(
-                self.snark_helper.ech.g1_encrypt(elem_2),
-                self.snark_helper.ech.multiply(proof[0], self.snark_helper.s)
+            ech.pairing(
+                self.get_w_dot_li_in_g1(test_witness),
+                trusted_setup.delta_in_g2
+            ) == ech.pairing(
+                ech.g1_encrypt(l_tau),
+                ech.G2
             )
         )
 
-        self.assertTrue(self.snark_helper.ech.eq(C_in_g1, proof[2]))
+    def test_raw_computation(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        _ = self.snark_helper._generate_proof(test_witness)
+
+        trusted_setup = self.snark_helper.trusted_setup
+        ech = self.snark_helper.ech
+        (beta, alpha, tau) = trusted_setup.beta, trusted_setup.alpha, trusted_setup.tau
+
+        A = self._get_first_element_of_proof(test_witness)
+        B = self._get_second_element_of_proof(test_witness)
+
+        left = A * B
+
+        right_1 = trusted_setup.alpha * trusted_setup.beta
+
+        li_tau = [beta * self.snark_helper.qap_a[idx].evaluate(tau) +
+                  alpha * self.snark_helper.qap_b[idx].evaluate(tau) +
+                  self.snark_helper.qap_c[idx].evaluate(tau)
+                  for idx in range(len(self.snark_helper.qap_a))]
+
+        right_2 = li_tau[0] * test_witness[0].val
+        right_3 = self._get_third_element_of_proof(test_witness) * trusted_setup.delta
+
+        self.assertTrue(FQ(left).val == FQ(right_1 + right_2 + right_3).val)
+
+        # Check pairing based computation
+        gamma_inverse = (FQ(1) / FQ(trusted_setup.gamma)).val
+        left_pairing = ech.pairing(ech.g1_encrypt(FQ(A).val), ech.g2_encrypt(FQ(B).val))
+
+        right_pairing_1 = ech.pairing(ech.g1_encrypt(alpha), ech.g2_encrypt(beta))
+        right_pairing_2 = ech.pairing(ech.g1_encrypt(right_2 * gamma_inverse), ech.g2_encrypt(trusted_setup.gamma))
+        right_pairing_3 = ech.pairing(
+            ech.g1_encrypt(self._get_third_element_of_proof(test_witness)),
+            ech.g2_encrypt(trusted_setup.delta)
+        )
+
+        self.assertTrue(left_pairing == (right_pairing_1 * right_pairing_2 * right_pairing_3))
+
+    def test_verification(self):
+        test_witness = [1, 3, 27, 9, 35, 30]
+        test_witness = [FQ(_) for _ in test_witness]
+
+        proof = self.snark_helper._generate_proof(test_witness)
+        self.assertTrue(self.snark_helper.verify(proof, test_witness[:1]))
